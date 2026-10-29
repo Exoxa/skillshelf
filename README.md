@@ -42,6 +42,23 @@ never committed. `.env.local` is ignored by git, and so are video files.
    sent to `/no-access`.
 
 
+## Deploy
+
+1. On vercel.com, **Add New → Project** and import `Exoxa/skillshelf`.
+   Framework is detected automatically; leave the build settings alone.
+2. Add these environment variables (Project Settings → Environment Variables),
+   exactly as they appear in `.env.local`:
+   `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+   `SUPABASE_SERVICE_ROLE_KEY`.
+3. Deploy. Open `/api/health` on the new URL: every service you have added a key
+   for should read `true`.
+4. Copy the production URL, add `NEXT_PUBLIC_SITE_URL` with it, and redeploy.
+5. In Supabase → Authentication → URL Configuration, set **Site URL** to that
+   same address and add `<site>/auth/confirm` to **Redirect URLs**. Without this,
+   password reset links point at localhost.
+
+Paystack and Resend keys are added in the same place when those stages land.
+
 ## Where things live
 
 | Path | What it is |
