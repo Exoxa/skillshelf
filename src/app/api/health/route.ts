@@ -1,19 +1,30 @@
 import { NextResponse } from "next/server";
+import { env } from "@/lib/env";
 
-// Returns which services are wired up, so we can confirm env vars on Vercel
-// without exposing any key values.
+export const dynamic = "force-dynamic";
+
+// Tells us which services are wired up, without exposing a single key.
 export function GET() {
-  return NextResponse.json({
-    ok: true,
-    stage: 0,
-    services: {
-      supabase: Boolean(
-        process.env.NEXT_PUBLIC_SUPABASE_URL &&
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-      ),
-      supabaseAdmin: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
-      paystack: Boolean(process.env.PAYSTACK_SECRET_KEY),
-      email: Boolean(process.env.RESEND_API_KEY),
+  let supabaseHost = "";
+  try {
+    supabaseHost = env.supabaseUrl ? new URL(env.supabaseUrl).host : "";
+  } catch {
+    supabaseHost = "invalid-url";
+  }
+
+  return NextResponse.json(
+    {
+      ok: true,
+      stage: 1,
+      services: {
+        supabase: Boolean(env.supabaseUrl && env.supabaseAnonKey),
+        supabaseAdmin: Boolean(env.supabaseServiceRoleKey),
+        paystack: Boolean(env.paystackSecretKey),
+        email: Boolean(env.resendApiKey),
+      },
+      supabaseHost,
+      siteUrl: env.siteUrl,
     },
-  });
+    { headers: { "cache-control": "no-store" } },
+  );
 }
