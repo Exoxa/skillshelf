@@ -36,9 +36,15 @@ export const env = {
   paystackPublicKey: (process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY ?? "").trim(),
   resendApiKey: (process.env.RESEND_API_KEY ?? "").trim(),
   emailFrom: (process.env.EMAIL_FROM ?? "").trim(),
+  // Vercel gives the stable production domain separately from the per-deploy
+  // URL, so password reset links do not change every deploy.
   siteUrl:
     cleanUrl(process.env.NEXT_PUBLIC_SITE_URL) ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000"),
+    (process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+      : process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : "http://localhost:3000"),
 };
 
 export const isSupabaseConfigured =

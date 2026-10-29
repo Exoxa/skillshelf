@@ -3,30 +3,58 @@ import { env } from "@/lib/env";
 
 export const dynamic = "force-dynamic";
 
-// Tells us which services are wired up, without exposing a single key. Only the
-// host of the Supabase URL is shown (it is public anyway).
+// Public key formats: new Supabase keys start with sb_publishable_, older ones
+// are JWTs starting with eyJ. Anything else is a paste mistake.
+function looksLikeKey(value: string, kind: "publishable" | "secret") {
+  if (kind === "publishable") {
+    return value.startsWith("sb_publishable_") || value.startsWith("eyJ");
+  }
+  return value.startsWith("sb_secret_") || value.startsWith("eyJ");
+}
+
+// Tells us which services are wired up, without exposing a key. The Supabase
+// URL host is public anyway.
 export function GET() {
   const rawUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").trim();
+  const anonKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "").trim();
+  const serviceKey = (process.env.SUPABASE_SERVICE_ROLE_KEY ?? "").trim();
+
+  let host = "";
+  try {
+    host = env.supabaseUrl ? new URL(env.supabaseUrl).host : "";
+  } catch {
+    host = "";
+  }
+
+  const urlLooksRight = /^[a-z0-9-]+\.supabase\.(co|in)$/i.test(host);
+  const keysLookRight =
+    looksLikeKey(anonKey, "publishable") && looksLikeKey(serviceKey, "secret");
 
   return NextResponse.json(
     {
       ok: true,
       stage: 1,
+      // "ready" means every value needed for accounts is present and shaped
+      // like a real Supabase value.
+      ready: urlLooksRight && keysLookRight,
       services: {
-        supabase: Boolean(env.supabaseUrl && env.supabaseAnonKey),
-        supabaseAdmin: Boolean(env.supabaseServiceRoleKey),
+        supabase: Boolean(env.supabaseUrl && anonKey),
+        supabaseAdmin: Boolean(serviceKey),
         paystack: Boolean(env.paystackSecretKey),
         email: Boolean(env.resendApiKey),
       },
-      supabaseHost: env.supabaseUrl ? new URL(env.supabaseUrl).host : "",
+      supabaseHost: host,
       siteUrl: env.siteUrl,
+      checks: {
+        urlLooksRight,
+        anonKeyLooksRight: looksLikeKey(anonKey, "publishable"),
+        serviceKeyLooksRight: looksLikeKey(serviceKey, "secret"),
+      },
       // Shape of the raw value, so a bad paste is obvious without printing it.
       urlCheck: {
         length: rawUrl.length,
         startsWithHttps: /^https:\/\//i.test(rawUrl),
-        endsWithSlash: rawUrl.endsWith("/"),
         containsSpace: /\s/.test(rawUrl),
-        accepted: Boolean(env.supabaseUrl),
       },
     },
     { headers: { "cache-control": "no-store" } },
