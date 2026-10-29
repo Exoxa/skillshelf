@@ -34,6 +34,9 @@ export function GET() {
     {
       ok: true,
       stage: 1,
+      // Which deploy is answering, so a stale build is obvious.
+      commit: (process.env.VERCEL_GIT_COMMIT_SHA ?? "local").slice(0, 7),
+      environment: process.env.VERCEL_ENV ?? "local",
       // "ready" means every value needed for accounts is present and shaped
       // like a real Supabase value.
       ready: urlLooksRight && keysLookRight,
