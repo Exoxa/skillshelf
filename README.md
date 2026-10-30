@@ -3,6 +3,9 @@
 An online course shop for one trainer in Lagos. Students pay in naira, and only
 paid students can open the lesson videos.
 
+Live site: **https://skillshelf-six.vercel.app**
+Health check: **https://skillshelf-six.vercel.app/api/health** (should say `"ready": true`)
+
 ## Run it locally
 
 ```bash
@@ -44,20 +47,35 @@ never committed. `.env.local` is ignored by git, and so are video files.
 
 ## Deploy
 
-1. On vercel.com, **Add New → Project** and import `Exoxa/skillshelf`.
-   Framework is detected automatically; leave the build settings alone.
-2. Add these environment variables (Project Settings → Environment Variables),
-   exactly as they appear in `.env.local`:
-   `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
-   `SUPABASE_SERVICE_ROLE_KEY`.
-3. Deploy. Open `/api/health` on the new URL: every service you have added a key
-   for should read `true`.
-4. Copy the production URL, add `NEXT_PUBLIC_SITE_URL` with it, and redeploy.
-5. In Supabase → Authentication → URL Configuration, set **Site URL** to that
-   same address and add `<site>/auth/confirm` to **Redirect URLs**. Without this,
-   password reset links point at localhost.
+The Vercel project (`osazuwa778-7022/skillshelf`) is already set up and connected
+to GitHub, so pushing to `main` deploys automatically.
 
-Paystack and Resend keys are added in the same place when those stages land.
+To deploy by hand:
+
+```bash
+npx vercel --prod
+```
+
+Environment variables live in Vercel, not in git. Set or replace them from the
+terminal so a value never has to be typed into a web form:
+
+```bash
+npx vercel env add NAME production    # reads the value from stdin
+npx vercel env ls
+```
+
+Variables needed: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+`SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SITE_URL`. Keep the `NEXT_PUBLIC_`
+prefix on the public ones and the type **Config**; store the service role key as
+**Secret**. Vercel locks a saved Secret, so a wrong value must be deleted, not
+edited.
+
+Paystack and Resend keys are added the same way when those stages land.
+
+One dashboard step cannot be done from code: in Supabase → Authentication →
+URL Configuration, set **Site URL** to the production address and add
+`<site>/auth/confirm` to **Redirect URLs**. Without this, password reset links
+point at localhost.
 
 ## Where things live
 
