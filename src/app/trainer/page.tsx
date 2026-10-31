@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireTrainer } from "@/lib/auth";
-import { describePrice, listCourses } from "@/lib/courses";
+import { describePrice, formatNaira, listCourses } from "@/lib/courses";
 import { ConfirmSubmit } from "@/components/confirm-submit";
 import { deleteCourse, setCoursePublished } from "./actions";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export const metadata: Metadata = { title: "Your courses" };
 
@@ -24,6 +25,22 @@ export default async function TrainerPage({
   const courses = await listCourses();
   const message = params.error ? MESSAGES[params.error] : undefined;
 
+  const admin = createAdminClient();
+  const [{ data: payments }, { data: enrolments }] = await Promise.all([
+    admin
+      .from("payments")
+      .select("amount_kobo, status")
+      .eq("status", "success"),
+    admin.from("enrolments").select("id"),
+  ]);
+
+  const totalSales = (payments ?? []).reduce(
+    (sum, payment) => sum + (payment.amount_kobo ?? 0),
+    0,
+  );
+  const salesCount = payments?.length ?? 0;
+  const studentCount = enrolments?.length ?? 0;
+
   return (
     <main className="flex-1">
       <section className="mx-auto w-full max-w-3xl px-5 py-10">
@@ -41,6 +58,36 @@ export default async function TrainerPage({
               ready.
             </p>
           </div>
+        </div>
+
+        <div className="mt-6 grid gap-3 sm:grid-cols-3">
+          <div className="rounded-2xl border border-border bg-card p-4">
+            <p className="text-xs text-muted">Total sales</p>
+            <p className="mt-1 text-xl font-semibold tracking-tight">
+              {formatNaira(totalSales)}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-border bg-card p-4">
+            <p className="text-xs text-muted">Successful payments</p>
+            <p className="mt-1 text-xl font-semibold tracking-tight">
+              {salesCount}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-border bg-card p-4">
+            <p className="text-xs text-muted">Total enrolments</p>
+            <p className="mt-1 text-xl font-semibold tracking-tight">
+              {studentCount}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Link
+            href="/trainer/payments"
+            className="inline-flex h-10 items-center rounded-xl border border-border px-3 text-sm font-medium transition-colors hover:bg-card"
+          >
+            Payments & students
+          </Link>
         </div>
 
         {message ? (
