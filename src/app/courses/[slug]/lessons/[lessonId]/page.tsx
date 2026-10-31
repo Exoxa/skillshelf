@@ -4,7 +4,9 @@ import { notFound, redirect } from "next/navigation";
 import { getProfile } from "@/lib/auth";
 import { hasCourseAccess } from "@/lib/access";
 import { getCourseBySlug, getLesson } from "@/lib/courses";
+import { getProgressForLessons } from "@/lib/progress";
 import { getLessonVideo } from "@/lib/video";
+import { LessonProgressToggle } from "@/components/lesson-progress-toggle";
 
 type Params = {
   params: Promise<{ slug: string; lessonId: string }>;
@@ -49,7 +51,11 @@ export default async function LessonPage({ params }: Params) {
   const canWatch = await hasCourseAccess(profile, course.id);
   if (!canWatch) redirect(`/courses/${slug}?locked=1`);
 
-  const video = await getLessonVideo(lesson.id);
+  const [video, progress] = await Promise.all([
+    getLessonVideo(lesson.id),
+    getProgressForLessons([lesson.id]),
+  ]);
+  const isCompleted = Boolean(progress[lesson.id]);
 
   const playable = course.lessons.filter((item) =>
     isTrainer ? true : item.is_published,
@@ -113,6 +119,16 @@ export default async function LessonPage({ params }: Params) {
             ? "This is a preview. Students see the same player, but only after they have paid."
             : "The video link is private to your account. It stops working after an hour, so open the lesson again if you leave it paused for a long time."}
         </p>
+
+        {isTrainer ? null : (
+          <div className="mt-6 rounded-2xl border border-border bg-card px-4 py-3">
+            <LessonProgressToggle
+              lessonId={lesson.id}
+              courseSlug={course.slug}
+              isCompleted={isCompleted}
+            />
+          </div>
+        )}
 
         {previous || next ? (
           <nav className="mt-8 flex items-center justify-between gap-3 border-t border-border pt-5 text-sm">

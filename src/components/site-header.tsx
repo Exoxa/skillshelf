@@ -26,7 +26,14 @@ export async function SiteHeader() {
                 >
                   Dashboard
                 </Link>
-              ) : null}
+              ) : (
+                <Link
+                  href="/my-courses"
+                  className="text-muted transition-colors hover:text-foreground"
+                >
+                  My courses
+                </Link>
+              )}
 
               <form action="/auth/signout" method="post">
                 <button

@@ -5,6 +5,7 @@ import { getProfile } from "@/lib/auth";
 import { hasCourseAccess } from "@/lib/access";
 import { describePrice, getCourseBySlug } from "@/lib/courses";
 import { paystackMode } from "@/lib/paystack";
+import { getProgressForLessons, getFirstUnfinishedLesson } from "@/lib/progress";
 import { ArrowRightIcon, LockIcon, PlayIcon } from "@/components/icons";
 
 type Params = {
@@ -47,6 +48,20 @@ export default async function CoursePage({ params, searchParams }: Params) {
   const visibleLessons = course.lessons.filter((lesson) => lesson.is_published);
   const lessonCount = visibleLessons.length;
   const firstLesson = visibleLessons[0] ?? null;
+
+  let continueLessonId: string | null = null;
+  let progressMap = {};
+  if (canWatch && profile && visibleLessons.length > 0) {
+    const ids = visibleLessons.map((lesson) => lesson.id);
+    [progressMap, continueLessonId] = await Promise.all([
+      getProgressForLessons(ids),
+      getFirstUnfinishedLesson(course.id, ids),
+    ]);
+  }
+
+  const completedCount = Object.keys(progressMap).length;
+  const progressPercent =
+    lessonCount === 0 ? 0 : Math.round((completedCount / lessonCount) * 100);
 
   const paragraphs = course.description
     .split(/\n\s*\n/)
@@ -143,12 +158,34 @@ export default async function CoursePage({ params, searchParams }: Params) {
               <p className="mt-2 text-sm leading-relaxed text-muted">
                 Your payment is on record. The lessons are open on this account.
               </p>
+
+              {lessonCount > 0 ? (
+                <div className="mt-4 space-y-2">
+                  <div className="flex items-center justify-between text-xs text-muted">
+                    <span>Your progress</span>
+                    <span>
+                      {completedCount}/{lessonCount} done · {progressPercent}%
+                    </span>
+                  </div>
+                  <div className="h-1.5 overflow-hidden rounded-full bg-border">
+                    <div
+                      className="h-full rounded-full bg-brand transition-[width]"
+                      style={{ width: `${progressPercent}%` }}
+                    />
+                  </div>
+                </div>
+              ) : null}
+
               {firstLesson ? (
                 <Link
-                  href={`/courses/${course.slug}/lessons/${firstLesson.id}`}
+                  href={`/courses/${course.slug}/lessons/${continueLessonId ?? firstLesson.id}`}
                   className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-brand px-4 text-[15px] font-medium text-white transition hover:opacity-95"
                 >
-                  {lessonCount > 1 ? "Start the first lesson" : "Open the lesson"}
+                  {completedCount === 0
+                    ? "Start the first lesson"
+                    : continueLessonId
+                      ? "Continue where you left off"
+                      : "Review the lessons"}
                   <ArrowRightIcon className="size-4" />
                 </Link>
               ) : (
