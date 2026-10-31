@@ -85,6 +85,10 @@ point at localhost.
 | `src/app/layout.tsx` | Shared shell: header, footer, fonts |
 | `src/app/globals.css` | Colours and base styles (Tailwind 4) |
 | `src/app/api/health/route.ts` | Service wiring check |
+| `src/app/trainer/page.tsx` | Trainer course list: publish, unpublish, delete |
+| `src/app/trainer/courses/[id]/page.tsx` | Edit one course and order its lessons |
+| `src/app/trainer/actions.ts` | Course and lesson server actions |
+| `src/lib/courses.ts` | Course and lesson reads, naira formatting |
 | `supabase/migrations/` | Database structure, added in Stage 1 |
 
 ## Build stages
@@ -94,6 +98,11 @@ point at localhost.
 | 0 | Skeleton | Live URL opens on a phone |
 | 1 | Accounts | Signup, login, trainer role, protected routes |
 | 2 | Courses and lessons | Trainer adds courses and lesson titles |
+
+Stage 2 is built: the trainer area at `/trainer` adds, edits, reorders,
+publishes and deletes courses and lessons. Lesson video upload arrives in
+Stage 4, and its place on each lesson page says so.
+
 | 3 | Public pages | Home cards and locked course page |
 | 4 | Video | Private upload and server-checked playback |
 | 5 | Payments | Paystack test mode unlocks a course |

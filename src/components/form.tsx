@@ -31,8 +31,13 @@ export function Field({
   );
 }
 
-export function Input(props: ComponentProps<"input">) {
-  return <input {...props} className={inputClass} />;
+export function Input({ className, ...props }: ComponentProps<"input">) {
+  return (
+    <input
+      {...props}
+      className={className ? `${inputClass} ${className}` : inputClass}
+    />
+  );
 }
 
 export function SubmitButton({
