@@ -81,7 +81,8 @@ point at localhost.
 
 | Path | What it is |
 |---|---|
-| `src/app/page.tsx` | Home page |
+| `src/app/page.tsx` | Home page: published course cards |
+| `src/app/courses/[slug]/page.tsx` | Public course page with locked lessons |
 | `src/app/layout.tsx` | Shared shell: header, footer, fonts |
 | `src/app/globals.css` | Colours and base styles (Tailwind 4) |
 | `src/app/api/health/route.ts` | Service wiring check |
@@ -98,11 +99,6 @@ point at localhost.
 | 0 | Skeleton | Live URL opens on a phone |
 | 1 | Accounts | Signup, login, trainer role, protected routes |
 | 2 | Courses and lessons | Trainer adds courses and lesson titles |
-
-Stage 2 is built: the trainer area at `/trainer` adds, edits, reorders,
-publishes and deletes courses and lessons. Lesson video upload arrives in
-Stage 4, and its place on each lesson page says so.
-
 | 3 | Public pages | Home cards and locked course page |
 | 4 | Video | Private upload and server-checked playback |
 | 5 | Payments | Paystack test mode unlocks a course |
@@ -110,6 +106,12 @@ Stage 4, and its place on each lesson page says so.
 | 7 | Welcome email | Email arrives once after payment |
 | 8 | Trainer dashboard | Sales, payments, students per course |
 | 9 | Hardening | Bypass tests, mobile pass, go live |
+
+Stages 2 and 3 are built. The trainer area at `/trainer` adds, edits,
+reorders, publishes and deletes courses and lessons. The public shop shows
+published courses on `/` and a locked lesson list at `/courses/[slug]`. Video
+upload (Stage 4) and card payment (Stage 5) are not wired yet, and the pages
+say so instead of pretending.
 
 ## House rules
 

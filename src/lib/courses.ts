@@ -64,6 +64,28 @@ export async function listCourses(): Promise<Course[]> {
   return groupLessons(courses ?? [], lessons ?? []);
 }
 
+// Public address for a course. The database rules hide drafts from students,
+// so a draft slug simply comes back empty for anyone but the trainer.
+export async function getCourseBySlug(slug: string): Promise<Course | null> {
+  const supabase = await createClient();
+
+  const { data: course } = await supabase
+    .from("courses")
+    .select(COURSE_FIELDS)
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (!course) return null;
+
+  const { data: lessons } = await supabase
+    .from("lessons")
+    .select(LESSON_FIELDS)
+    .eq("course_id", course.id)
+    .order("position", { ascending: true });
+
+  return { ...course, lessons: lessons ?? [] };
+}
+
 export async function getCourse(id: string): Promise<Course | null> {
   const supabase = await createClient();
 
