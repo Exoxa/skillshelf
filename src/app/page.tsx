@@ -26,11 +26,11 @@ export default async function Home() {
           Lagos, Nigeria
         </p>
 
-        <h1 className="mt-6 text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
+        <h1 className="mt-6 text-4xl font-semibold tracking-tight text-balance sm:text-5xl md:text-6xl">
           Short courses you can finish on your phone.
         </h1>
 
-        <p className="mt-4 max-w-xl text-lg leading-relaxed text-muted">
+        <p className="mt-4 max-w-xl text-lg leading-relaxed text-pretty text-muted">
           Pay once in naira, then watch whenever you like. Your lessons stay in
           your account, ready when you are.
         </p>
@@ -85,7 +85,7 @@ export default async function Home() {
                 <li key={course.id}>
                   <Link
                     href={`/courses/${course.slug}`}
-                    className="group flex h-full flex-col rounded-2xl border border-border bg-card p-5 transition hover:border-brand/40 hover:shadow-sm"
+                    className="group flex h-full flex-col rounded-2xl border border-border bg-card/80 p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
                   >
                     <h3 className="text-[17px] leading-snug font-medium">
                       {course.title}

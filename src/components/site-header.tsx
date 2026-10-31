@@ -7,8 +7,8 @@ export async function SiteHeader() {
   return (
     <header className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur">
       <div className="mx-auto flex h-14 w-full max-w-3xl items-center justify-between px-5">
-        <Link href="/" className="flex items-center gap-2">
-          <span className="grid size-8 place-items-center rounded-lg bg-brand text-sm font-semibold text-white">
+        <Link href="/" className="flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-lg">
+          <span className="grid size-8 place-items-center rounded-lg bg-gradient-to-br from-brand to-brand/80 text-sm font-semibold text-white shadow-sm">
             S
           </span>
           <span className="text-[15px] font-semibold tracking-tight">
@@ -38,17 +38,17 @@ export async function SiteHeader() {
               <form action="/auth/signout" method="post">
                 <button
                   type="submit"
-                  className="text-muted transition-colors hover:text-foreground"
+                  className="text-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-md px-1 py-0.5"
                 >
                   Sign out
                 </button>
               </form>
             </>
           ) : (
-            <Link
-              href="/login"
-              className="font-medium text-brand hover:underline"
-            >
+              <Link
+                href="/login"
+                className="font-medium text-brand hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-md"
+              >
               Sign in
             </Link>
           )}

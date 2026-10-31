@@ -20,16 +20,20 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#fbf8f4",
+  maximumScale: 5,
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#fbf8f4" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b0b0b" },
+  ],
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${geistSans.variable} h-full`}>
-      <body className="flex min-h-full flex-col bg-background font-sans text-foreground">
-        <SiteHeader />
+    <html lang="en" className={`${geistSans.variable} h-full`} suppressHydrationWarning>
+      <body className="flex min-h-full flex-col bg-background font-sans text-foreground antialiased">
+      <SiteHeader />
 
-        {children}
+      <main className="flex-1">{children}</main>
 
         <footer className="mt-auto border-t border-border">
           <div className="mx-auto flex w-full max-w-3xl items-center justify-between px-5 py-6 text-xs text-muted">
