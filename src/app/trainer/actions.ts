@@ -5,6 +5,15 @@ import { redirect } from "next/navigation";
 import { requireTrainer } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { uniqueSlug } from "@/lib/slug";
+import {
+  MAX_VIDEO_BYTES,
+  createUploadTarget,
+  getUploadInfo,
+  isAllowedVideoType,
+  removeLessonVideo,
+  removeVideosForLessons,
+  saveLessonVideo,
+} from "@/lib/video";
 
 export type FormState = {
   error?: string;
@@ -159,6 +168,14 @@ export async function deleteCourse(formData: FormData): Promise<void> {
     redirect("/trainer?error=sales");
   }
 
+  // Files in the bucket do not cascade with the rows, so clear them first.
+  const { data: lessons } = await supabase
+    .from("lessons")
+    .select("id")
+    .eq("course_id", id);
+
+  await removeVideosForLessons((lessons ?? []).map((lesson) => lesson.id));
+
   const { error } = await supabase.from("courses").delete().eq("id", id);
   if (error) redirect("/trainer?error=delete");
 
@@ -242,6 +259,9 @@ export async function deleteLesson(formData: FormData): Promise<void> {
   const courseId = text(formData, "course_id");
   if (!id || !courseId) redirect("/trainer");
 
+  // The video file lives outside the database, so remove it by hand.
+  await removeLessonVideo(id);
+
   const supabase = await createClient();
   const { error } = await supabase
     .from("lessons")
@@ -298,4 +318,107 @@ export async function moveLesson(formData: FormData): Promise<void> {
 
   refresh(courseId);
   redirect(`/trainer/courses/${courseId}`);
+}
+
+// ---------------------------------------------------------------- lesson video
+
+export type UploadTarget = { path: string; token: string; signedUrl: string };
+
+async function findLesson(lessonId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("lessons")
+    .select("id, course_id")
+    .eq("id", lessonId)
+    .maybeSingle();
+
+  return data ?? null;
+}
+
+function refreshLesson(courseId: string, lessonId: string) {
+  refresh(courseId);
+  revalidatePath(`/trainer/courses/${courseId}/lessons/${lessonId}`);
+  revalidatePath("/", "layout");
+}
+
+// Step 1: give the browser a one-off link. The video goes straight from the
+// trainer's phone or laptop to storage, never through this server.
+export async function createVideoUpload(input: {
+  lessonId: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+}): Promise<{ error?: string; target?: UploadTarget }> {
+  await requireTrainer("/trainer");
+
+  const lessonId = String(input.lessonId ?? "").trim();
+  const lesson = lessonId ? await findLesson(lessonId) : null;
+  if (!lesson) return { error: "That lesson was not found." };
+
+  if (!isAllowedVideoType(input.mimeType)) {
+    return { error: "Use an MP4, WebM or MOV file." };
+  }
+  if (!Number.isFinite(input.sizeBytes) || input.sizeBytes <= 0) {
+    return { error: "That file looks empty. Please pick the video again." };
+  }
+  if (input.sizeBytes > MAX_VIDEO_BYTES) {
+    return {
+      error: "That video is over 50 MB. Trim it or lower the quality, then try again.",
+    };
+  }
+
+  const target = await createUploadTarget(lessonId, input.fileName);
+  return { target };
+}
+
+// Step 2: the upload finished, so point the lesson at the file.
+export async function saveVideoUpload(input: {
+  lessonId: string;
+  path: string;
+  mimeType: string;
+  sizeBytes: number;
+}): Promise<{ error?: string; ok?: boolean }> {
+  await requireTrainer("/trainer");
+
+  const lessonId = String(input.lessonId ?? "").trim();
+  const lesson = lessonId ? await findLesson(lessonId) : null;
+  if (!lesson) return { error: "That lesson was not found." };
+
+  const path = String(input.path ?? "");
+  if (!path.startsWith(`${lessonId}/`)) {
+    return { error: "That upload does not belong to this lesson." };
+  }
+
+  const info = await getUploadInfo(path);
+  if (!info) {
+    return { error: "The upload did not finish. Please try again." };
+  }
+
+  const saved = await saveLessonVideo({
+    lessonId,
+    storagePath: path,
+    mimeType: info.mimeType ?? input.mimeType ?? null,
+    sizeBytes: info.sizeBytes ?? input.sizeBytes ?? null,
+  });
+
+  if (saved.error) {
+    return { error: "Could not save the video. Please try again." };
+  }
+
+  refreshLesson(lesson.course_id, lessonId);
+  return { ok: true };
+}
+
+export async function removeVideoUpload(
+  lessonId: string,
+): Promise<{ error?: string; ok?: boolean }> {
+  await requireTrainer("/trainer");
+
+  const id = String(lessonId ?? "").trim();
+  const lesson = id ? await findLesson(id) : null;
+  if (!lesson) return { error: "That lesson was not found." };
+
+  await removeLessonVideo(id);
+  refreshLesson(lesson.course_id, id);
+  return { ok: true };
 }

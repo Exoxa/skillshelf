@@ -43,7 +43,26 @@ never committed. `.env.local` is ignored by git, and so are video files.
    Only one trainer account. Never add a second by mistake.
 5. Sign out and back in. `/trainer` should open; a student account should be
    sent to `/no-access`.
+6. Stage 4 only: run `supabase/migrations/0002_lesson_videos.sql` in the SQL
+   Editor. It creates the private `lesson-videos` bucket. The app can also do
+   this from the terminal, but the SQL file keeps it reproducible.
 
+
+## Video storage
+
+Lesson videos live in one private Supabase Storage bucket, `lesson-videos`.
+No file ever gets a public address.
+
+- The trainer's browser asks the server for a one-off upload link, then sends
+  the file straight to Supabase. Videos do not pass through Vercel, which stops
+  request bodies at 4.5 MB.
+- The server checks the file landed, records it in `lesson_assets`, and deletes
+  the file it replaced.
+- Playback goes through `/api/lessons/<id>/video`. That route checks the login,
+  the course, and the enrolment, then redirects to a signed link that expires
+  after an hour. Nothing is ever served from a guessed URL.
+- Limit: 50 MB per video, MP4, WebM or MOV. That is the Supabase free-plan
+  ceiling. Cloudflare Stream replaces this when the videos get longer.
 
 ## Deploy
 
@@ -83,6 +102,8 @@ point at localhost.
 |---|---|
 | `src/app/page.tsx` | Home page: published course cards |
 | `src/app/courses/[slug]/page.tsx` | Public course page with locked lessons |
+| `src/app/courses/[slug]/lessons/[lessonId]/page.tsx` | Lesson player |
+| `src/app/api/lessons/[lessonId]/video/route.ts` | Access check, then signed video link |
 | `src/app/layout.tsx` | Shared shell: header, footer, fonts |
 | `src/app/globals.css` | Colours and base styles (Tailwind 4) |
 | `src/app/api/health/route.ts` | Service wiring check |
@@ -90,6 +111,8 @@ point at localhost.
 | `src/app/trainer/courses/[id]/page.tsx` | Edit one course and order its lessons |
 | `src/app/trainer/actions.ts` | Course and lesson server actions |
 | `src/lib/courses.ts` | Course and lesson reads, naira formatting |
+| `src/lib/video.ts` | Private bucket: upload links, signed playback, cleanup |
+| `src/lib/access.ts` | The paid-only check used by pages and the video route |
 | `supabase/migrations/` | Database structure, added in Stage 1 |
 
 ## Build stages
@@ -107,11 +130,11 @@ point at localhost.
 | 8 | Trainer dashboard | Sales, payments, students per course |
 | 9 | Hardening | Bypass tests, mobile pass, go live |
 
-Stages 2 and 3 are built. The trainer area at `/trainer` adds, edits,
-reorders, publishes and deletes courses and lessons. The public shop shows
-published courses on `/` and a locked lesson list at `/courses/[slug]`. Video
-upload (Stage 4) and card payment (Stage 5) are not wired yet, and the pages
-say so instead of pretending.
+Stages 2 to 4 are built. The trainer area at `/trainer` adds, edits,
+reorders, publishes and deletes courses and lessons, and uploads one video per
+lesson. The public shop shows published courses on `/`, a locked lesson list at
+`/courses/[slug]`, and a player that only opens after the server checks access.
+Card payment (Stage 5) comes next, and the pages say so instead of pretending.
 
 ## House rules
 

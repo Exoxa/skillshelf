@@ -18,8 +18,7 @@ export function LockIcon({ className }: { className?: string }) {
   );
 }
 
-export function ArrowRightIcon({ className }: { className?: string }) {
-  return (
+export function ArrowRightIcon({ className }: { className?: string }) {  return (
     <svg
       viewBox="0 0 24 24"
       fill="none"
@@ -32,6 +31,24 @@ export function ArrowRightIcon({ className }: { className?: string }) {
     >
       <path d="M5 12h14" />
       <path d="m13 6 6 6-6 6" />
+    </svg>
+  );
+}
+
+export function PlayIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.7}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={className}
+    >
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M10.5 9.2v5.6l4.5-2.8-4.5-2.8Z" fill="currentColor" stroke="none" />
     </svg>
   );
 }

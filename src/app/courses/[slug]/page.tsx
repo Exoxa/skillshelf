@@ -2,10 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProfile } from "@/lib/auth";
+import { hasCourseAccess } from "@/lib/access";
 import { describePrice, getCourseBySlug } from "@/lib/courses";
-import { ArrowRightIcon, LockIcon } from "@/components/icons";
+import { ArrowRightIcon, LockIcon, PlayIcon } from "@/components/icons";
 
-type Params = { params: Promise<{ slug: string }> };
+type Params = {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ locked?: string }>;
+};
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { slug } = await params;
@@ -21,20 +25,21 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   };
 }
 
-export default async function CoursePage({ params }: Params) {
+export default async function CoursePage({ params, searchParams }: Params) {
   const { slug } = await params;
 
-  const [course, profile] = await Promise.all([
-    getCourseBySlug(slug),
-    getProfile(),
-  ]);
-
+  const course = await getCourseBySlug(slug);
   if (!course) notFound();
+
+  const [profile, search] = await Promise.all([getProfile(), searchParams]);
 
   const isTrainer = profile?.role === "trainer";
 
   // A draft is only visible to the trainer, for a quick look before publishing.
   if (!course.is_published && !isTrainer) notFound();
+
+  const canWatch = await hasCourseAccess(profile, course.id);
+  const showLockedNote = search.locked === "1" && !canWatch;
 
   const visibleLessons = course.lessons.filter((lesson) => lesson.is_published);
   const lessonCount = visibleLessons.length;
@@ -79,6 +84,15 @@ export default async function CoursePage({ params }: Params) {
           <span aria-hidden="true">·</span>
           <span>Watch on your phone</span>
         </div>
+
+        {showLockedNote ? (
+          <p
+            role="status"
+            className="mt-5 rounded-xl border border-brand/20 bg-brand-soft px-3.5 py-3 text-sm text-brand"
+          >
+            That lesson is locked. Pay for the course to watch it.
+          </p>
+        ) : null}
 
         <div className="mt-7 rounded-2xl border border-border bg-card p-5">
           {isTrainer ? (
@@ -158,7 +172,9 @@ export default async function CoursePage({ params }: Params) {
             >
               Lessons
             </h2>
-            <span className="text-xs text-muted">Unlock after payment</span>
+            <span className="text-xs text-muted">
+              {canWatch ? "Tap a lesson to watch" : "Unlock after payment"}
+            </span>
           </div>
 
           {course.lessons.length === 0 ? (
@@ -167,35 +183,61 @@ export default async function CoursePage({ params }: Params) {
             </p>
           ) : (
             <ol className="mt-4 divide-y divide-border rounded-2xl border border-border bg-card px-4">
-              {course.lessons.map((lesson, index) => (
-                <li key={lesson.id} className="flex items-center gap-3 py-3.5">
-                  <span className="grid size-7 shrink-0 place-items-center rounded-full bg-brand-soft text-xs font-semibold text-brand">
-                    {index + 1}
-                  </span>
+              {course.lessons.map((lesson, index) => {
+                const row = (
+                  <>
+                    <span className="grid size-7 shrink-0 place-items-center rounded-full bg-brand-soft text-xs font-semibold text-brand">
+                      {index + 1}
+                    </span>
 
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm leading-snug font-medium">
-                      {lesson.title}
-                    </p>
-                    {lesson.is_published ? null : (
-                      <span className="mt-1 inline-block rounded-full border border-border px-2 py-0.5 text-[11px] text-muted">
-                        Hidden from students
-                      </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm leading-snug font-medium">
+                        {lesson.title}
+                      </p>
+                      {lesson.is_published ? null : (
+                        <span className="mt-1 inline-block rounded-full border border-border px-2 py-0.5 text-[11px] text-muted">
+                          Hidden from students
+                        </span>
+                      )}
+                    </div>
+
+                    <span className="inline-flex shrink-0 items-center gap-1.5 text-muted">
+                      {canWatch ? (
+                        <>
+                          <PlayIcon className="size-4" />
+                          <span className="sr-only">Watch</span>
+                        </>
+                      ) : (
+                        <>
+                          <LockIcon className="size-4" />
+                          <span className="sr-only">Locked</span>
+                        </>
+                      )}
+                    </span>
+                  </>
+                );
+
+                return (
+                  <li key={lesson.id}>
+                    {canWatch ? (
+                      <Link
+                        href={`/courses/${course.slug}/lessons/${lesson.id}`}
+                        className="flex items-center gap-3 py-3.5 transition-colors hover:text-brand"
+                      >
+                        {row}
+                      </Link>
+                    ) : (
+                      <div className="flex items-center gap-3 py-3.5">{row}</div>
                     )}
-                  </div>
-
-                  <span className="inline-flex shrink-0 items-center gap-1.5 text-muted">
-                    <LockIcon className="size-4" />
-                    <span className="sr-only">Locked</span>
-                  </span>
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ol>
           )}
 
           <p className="mt-3 text-xs leading-relaxed text-muted">
             Lessons open only for the student who paid for this course, on her
-            own account.
+            own account. The video link is checked on the server every time.
           </p>
         </section>
       </section>
