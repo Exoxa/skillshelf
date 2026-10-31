@@ -9,6 +9,8 @@ import {
   markPaymentFailed,
 } from "@/lib/payments";
 import { isPaystackConfigured, verifyTransaction } from "@/lib/paystack";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { sendWelcomeEmail } from "@/lib/email";
 
 export const metadata: Metadata = { title: "Checking payment" };
 
@@ -122,6 +124,47 @@ export default async function CheckoutCallbackPage({ searchParams }: Params) {
 
   const transaction = verified.data;
 
+  async function sendWelcomeOnceLocal(ref: string) {
+    const admin = createAdminClient();
+    const payment = await getPaymentByReference(ref);
+    if (!payment) return;
+
+    const { data: enrolment } = await admin
+      .from("enrolments")
+      .select("id, welcome_email_sent_at, course_id")
+      .eq("payment_id", payment.id)
+      .maybeSingle();
+
+    if (!enrolment || enrolment.welcome_email_sent_at) return;
+
+    const course = await getCourseForPayment(enrolment.course_id);
+    if (!course) return;
+
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("email")
+      .eq("id", payment.student_id)
+      .maybeSingle();
+
+    const to = profile?.email || "";
+    if (!to) return;
+
+    const result = await sendWelcomeEmail({
+      to,
+      courseTitle: course.title,
+      courseSlug: course.slug,
+    });
+
+    if (result.ok) {
+      await admin
+        .from("enrolments")
+        .update({ welcome_email_sent_at: new Date().toISOString() })
+        .eq("id", enrolment.id);
+    } else {
+      console.error("welcome email failed", result.error);
+    }
+  }
+
   if (transaction.status === "success") {
     const result = await fulfilPayment({ reference, transaction });
 
@@ -146,6 +189,8 @@ export default async function CheckoutCallbackPage({ searchParams }: Params) {
         </Message>
       );
     }
+
+    await sendWelcomeOnceLocal(reference);
 
     redirect(`${coursePath}?paid=1`);
   }
