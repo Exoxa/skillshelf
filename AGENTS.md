@@ -369,11 +369,11 @@ production`) so values are never typed into a web form.
 | 2 Courses and lessons | Done |
 | 3 Public pages | Done |
 | 4 Video | Done (`0fca0a6`, live) |
-| 5 Payments | In progress |
-| 6 My courses | Not started |
-| 7 Welcome email | Not started |
-| 8 Trainer dashboard | Not started |
-| 9 Launch | Not started |
+| 5 Payments | Done |
+| 6 My courses | Done |
+| 7 Welcome email | Done |
+| 8 Trainer dashboard | Done |
+| 9 Launch | In progress |
 
 Demo course: **Phone Photography for Beginners**, ₦15,000, three lessons (one
 hidden), first lesson holds a small CC0 test clip.
