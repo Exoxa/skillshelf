@@ -4,11 +4,12 @@ import { notFound } from "next/navigation";
 import { getProfile } from "@/lib/auth";
 import { hasCourseAccess } from "@/lib/access";
 import { describePrice, getCourseBySlug } from "@/lib/courses";
+import { paystackMode } from "@/lib/paystack";
 import { ArrowRightIcon, LockIcon, PlayIcon } from "@/components/icons";
 
 type Params = {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ locked?: string }>;
+  searchParams: Promise<{ locked?: string; paid?: string }>;
 };
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
@@ -40,9 +41,12 @@ export default async function CoursePage({ params, searchParams }: Params) {
 
   const canWatch = await hasCourseAccess(profile, course.id);
   const showLockedNote = search.locked === "1" && !canWatch;
+  const showPaidNote = search.paid === "1" && canWatch;
+  const showCheckingNote = search.paid === "1" && Boolean(profile) && !canWatch;
 
   const visibleLessons = course.lessons.filter((lesson) => lesson.is_published);
   const lessonCount = visibleLessons.length;
+  const firstLesson = visibleLessons[0] ?? null;
 
   const paragraphs = course.description
     .split(/\n\s*\n/)
@@ -94,6 +98,24 @@ export default async function CoursePage({ params, searchParams }: Params) {
           </p>
         ) : null}
 
+        {showPaidNote ? (
+          <p
+            role="status"
+            className="mt-5 rounded-xl border border-brand/20 bg-brand-soft px-3.5 py-3 text-sm text-brand"
+          >
+            Payment received — welcome! Your lessons are open.
+          </p>
+        ) : null}
+
+        {showCheckingNote ? (
+          <p
+            role="status"
+            className="mt-5 rounded-xl border border-border bg-card px-3.5 py-3 text-sm text-muted"
+          >
+            We are still checking your payment. Refresh this page in a moment.
+          </p>
+        ) : null}
+
         <div className="mt-7 rounded-2xl border border-border bg-card p-5">
           {isTrainer ? (
             <>
@@ -110,6 +132,31 @@ export default async function CoursePage({ params, searchParams }: Params) {
                 <ArrowRightIcon className="size-4" />
               </Link>
             </>
+          ) : canWatch ? (
+            <>
+              <div className="flex items-baseline justify-between gap-3">
+                <p className="text-2xl font-semibold tracking-tight">
+                  You have this course
+                </p>
+                <p className="text-xs text-muted">Lifetime access</p>
+              </div>
+              <p className="mt-2 text-sm leading-relaxed text-muted">
+                Your payment is on record. The lessons are open on this account.
+              </p>
+              {firstLesson ? (
+                <Link
+                  href={`/courses/${course.slug}/lessons/${firstLesson.id}`}
+                  className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-brand px-4 text-[15px] font-medium text-white transition hover:opacity-95"
+                >
+                  {lessonCount > 1 ? "Start the first lesson" : "Open the lesson"}
+                  <ArrowRightIcon className="size-4" />
+                </Link>
+              ) : (
+                <p className="mt-4 rounded-xl border border-border bg-background px-3.5 py-3 text-sm text-muted">
+                  The trainer is still adding lessons to this course.
+                </p>
+              )}
+            </>
           ) : profile ? (
             <>
               <div className="flex items-baseline justify-between gap-3">
@@ -118,13 +165,45 @@ export default async function CoursePage({ params, searchParams }: Params) {
                 </p>
                 <p className="text-xs text-muted">One payment · lifetime access</p>
               </div>
-              <p
-                role="status"
-                className="mt-4 rounded-xl border border-border bg-background px-3.5 py-3 text-sm text-muted"
-              >
-                Card payment is not open yet. Check back soon — nothing has been
-                charged.
-              </p>
+
+              {course.price_kobo === 0 ? (
+                <Link
+                  href={`/checkout/${course.slug}`}
+                  className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-brand px-4 text-[15px] font-medium text-white transition hover:opacity-95"
+                >
+                  Get this course free
+                  <ArrowRightIcon className="size-4" />
+                </Link>
+              ) : paystackMode !== "off" ? (
+                <Link
+                  href={`/checkout/${course.slug}`}
+                  className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-brand px-4 text-[15px] font-medium text-white transition hover:opacity-95"
+                >
+                  Buy this course
+                  <ArrowRightIcon className="size-4" />
+                </Link>
+              ) : (
+                <p
+                  role="status"
+                  className="mt-4 rounded-xl border border-border bg-background px-3.5 py-3 text-sm text-muted"
+                >
+                  Card payment is not open yet. Check back soon — nothing has
+                  been charged.
+                </p>
+              )}
+
+              {paystackMode !== "off" && course.price_kobo > 0 ? (
+                <p className="mt-3 text-center text-xs leading-relaxed text-muted">
+                  Pay by card in naira on Paystack. The lessons open as soon as
+                  the payment is confirmed.
+                </p>
+              ) : null}
+
+              {paystackMode === "test" && course.price_kobo > 0 ? (
+                <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-center text-xs leading-relaxed text-amber-900">
+                  Test mode. No real money is charged right now.
+                </p>
+              ) : null}
             </>
           ) : (
             <>

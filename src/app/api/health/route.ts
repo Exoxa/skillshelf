@@ -33,7 +33,7 @@ export function GET() {
   return NextResponse.json(
     {
       ok: true,
-      stage: 1,
+      stage: 5,
       // Which deploy is answering, so a stale build is obvious.
       commit: (process.env.VERCEL_GIT_COMMIT_SHA ?? "local").slice(0, 7),
       environment: process.env.VERCEL_ENV ?? "local",
@@ -44,6 +44,10 @@ export function GET() {
         supabase: Boolean(env.supabaseUrl && anonKey),
         supabaseAdmin: Boolean(serviceKey),
         paystack: Boolean(env.paystackSecretKey),
+        // Shape only: true means test keys, false means live keys.
+        paystackTestMode: env.paystackSecretKey
+          ? env.paystackSecretKey.startsWith("sk_test_")
+          : null,
         email: Boolean(env.resendApiKey),
       },
       supabaseHost: host,

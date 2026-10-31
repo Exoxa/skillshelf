@@ -18,7 +18,8 @@ export function LockIcon({ className }: { className?: string }) {
   );
 }
 
-export function ArrowRightIcon({ className }: { className?: string }) {  return (
+export function ArrowRightIcon({ className }: { className?: string }) {
+  return (
     <svg
       viewBox="0 0 24 24"
       fill="none"
